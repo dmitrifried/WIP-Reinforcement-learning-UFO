@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef} from 'react'
 import Two from 'two.js';
-// import Ship from './ship.js';
+import Ship from './ship.js';
 
 export default function Game(props) {
     // const [state, setstate] = useState(initialState)
@@ -8,8 +8,7 @@ export default function Game(props) {
 
     useEffect(() => {
         Game.two = new Two({fullscreen: true, autostart: true});
-        Game.two.makeCircle(50, 50, 40);
-        Game.two.update();
+        new Ship({two: Game.two, x: 100, y: 100});
         Game.two.appendTo(ref.current);
     })
 
