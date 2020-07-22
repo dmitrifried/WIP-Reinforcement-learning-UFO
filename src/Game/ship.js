@@ -4,15 +4,16 @@ export default class Ship {
   constructor({ two, x, y }) {
     const cockpitRadius = 15;
     const shipRadius = 30;
-    const lf = { x: x - cockpitRadius, y: y + 8 };
-    const rf = { x: x + cockpitRadius, y: y + 8 };
-    [this.x, this.y, this.two] = [x, y, two];
-    [this.baseX, this.baseY] = [100, 100];
+    [this.baseX, this.baseY] = [0, 0];
+    const lf = { x: this.baseX - cockpitRadius, y: this.baseY + 8 };
+    const rf = { x: this.baseX + cockpitRadius, y: this.baseY + 8 };
 
-    let base = two.makeEllipse(x, y, shipRadius, shipRadius / 3.0);
+    this.two = two;
+
+    let base = new Two.Ellipse(this.baseX, this.baseY, shipRadius, shipRadius / 3.0);
     base.fill = "#AAAAAA";
 
-    let cockpit = two.makeArcSegment(x, y, 0, cockpitRadius, -Math.PI, 0);
+    let cockpit = new Two.ArcSegment(this.baseX, this.baseY, 0, cockpitRadius, -Math.PI, 0);
     cockpit.fill = "#DDDDDD";
 
     this.leftFlameTip = new Two.Anchor(lf.x, lf.y + 15);
@@ -30,17 +31,26 @@ export default class Ship {
       v.x += rf.x - lf.x;
     });
 
-    let flameGroup = two.makeGroup(lFlame, rFlame);
-    let bodyGroup = two.makeGroup(base, cockpit);
-    this.group = two.makeGroup(flameGroup, bodyGroup);
-    this.group.translation.set(x, y)
+    // let flameGroup = new Two.Group(lFlame, rFlame);
+    // let bodyGroup = new Two.Group(base, cockpit);
+    this.group = two.makeGroup(lFlame, rFlame, base, cockpit); // flameGroup, bodyGroup);
 
     two.add(this.group);
 
+    this.group.translation.set(x, y);
     this.leftEngine = true;
     this.rightEngine = true;
-    [this.vX, this.vY] = [0, 0];
-    this.angularV = 0;
+    this.v = new Two.Vector(0, 0);
+    this.aV = 0;
+  }
+
+  reset(x, y) {
+    this.group.translation.set(x, y);
+    this.group.rotation = 0;
+    this.v.set(0, 0);
+    this.aV = 0;
+    this.leftEngine = true;
+    this.rightEngine = true;
   }
 
   get theta() {
@@ -48,45 +58,68 @@ export default class Ship {
   }
 
   get state() {
-    return [this.x, this.y, this.vX, this.vY, this.angularV];
+    return {
+      pos: this.group.translation,
+      v: this.v,
+      aV: this.aV,
+    };
   }
 
   get gravity() {
-    return -3.0;
-  }
-
-  get mass() {
-    return 100000;
+    return 300.0;
   }
 
   get engineForce() {
-    return 5.0;
+    return 250.0;
   }
 
-  /** @returns [ax, ay] */
+  get engineTorque() {
+    return 0.1;
+  }
+
+  get velocityDecay() {
+    return 0.2;
+  }
+
+  get angularDecay() {
+    return 0.2;
+  }
+
+  get maxY() {
+    return this.two.height - 50;
+  }
+
+  get maxX() {
+    return this.two.width - 70;
+  }
+
+  get minY() {
+    return 50;
+  }
+
+  get minX() {
+    return 70;
+  }
+
+  /** @returns Two.Vector(ax, ay) */
   get acceleration() {
     let theta = this.theta;
     let [le, re] = [this.le, this.re];
     let engineMult = ((le ? 1 : 0) + (re ? 1 : 0)) * this.engineForce;
-    let ay = this.mass * this.gravity + engineMult * Math.sin(theta);
+    let ay = this.gravity + engineMult * Math.sin(theta);
     let ax = engineMult * Math.cos(theta);
-    return [ax, ay];
+    return new Two.Vector(ax, ay);
   }
 
   get angularAcceleration() {
-    const torqueMult = 200;
     let [le, re] = [this.leftEngine, this.rightEngine];
     if (le && !re) {
-      return torqueMult * this.engineForce;
+      return this.engineTorque;
     } else if (!le && re) {
-      return -torqueMult * this.engineForce;
+      return -this.engineTorque;
     } else {
       return 0;
     }
-  }
-
-  get angularDecay() {
-    return 0.8;
   }
 
   get le() {
@@ -107,19 +140,28 @@ export default class Ship {
     this.rightFlameTip.y = rightEngine ? this.baseY + 23 : this.baseY;
   }
 
-  applyPhysics(timespan) {
+  applyPhysics(deltaT) {
+    deltaT = deltaT / 1000.0;
+    if (deltaT > 1) {
+      return;
+    }
+
     // y is inverted
-    let [ax, ay] = this.acceleration;
-    let angA = this.angularAcceleration;
+    let a = this.acceleration;
+    let aA = this.angularAcceleration;
 
-    this.x += this.vX * timespan;
-    this.y += this.vY * timespan;
-    this.group.translation.set(this.x, this.y);
-    this.group.rotation = this.theta + this.angularV * timespan + Math.PI / 2.0;
+    this.group.translation.addSelf(a.clone().multiplyScalar(deltaT));
+    let p = this.group.translation.clone();
+    p.x = Math.max(this.minX, Math.min(p.x, this.maxX));
+    p.y = Math.max(this.minY, Math.min(p.y, this.maxY));
 
-    this.vX += ax * timespan;
-    this.vY -= ay * timespan;
-    this.angularV *= 1 - this.angularDecay * timespan;
-    this.angularV += angA * timespan;
+    this.group.translation = p;
+    this.group.rotation += this.aV * deltaT;
+
+    this.v.multiplyScalar(1 - deltaT * this.velocityDecay);
+    this.v.addSelf(a.multiplyScalar(deltaT));
+
+    this.aV *= 1 - deltaT * this.angularDecay;
+    this.aV += aA;
   }
 }

@@ -2,53 +2,74 @@ import React, { useState, useEffect, useRef } from "react";
 import Two from "two.js";
 import Ship from "./ship.js";
 
+const two = new Two({ height: 500, width: 800, autostart: true });
+two.makeCircle(40, 40, 10);
+two.makeCircle(40, 800, 10);
+two.makeCircle(1000, 0, 10);
+const ship = new Ship({ two: two, x: 100, y: 100 });
+document.addEventListener("keydown", (e) => {
+  switch (e.keyCode) {
+    case 37: // left
+      e.preventDefault();
+      ship.le = !ship.le;
+      break;
+    case 39: // right
+      e.preventDefault();
+      ship.re = !ship.re;
+      break;
+    default:
+      return;
+  }
+});
+
+two.bind("update", (frameCount, deltaT) => {
+  ship.applyPhysics(deltaT);
+});
+
 export default function Game(props) {
-  // const [state, setstate] = useState(initialState)
   const ref = useRef(null);
 
-  const [two, setTwo] = useState(new Two({ height: 800, width: 1000, autostart: true }));
-  const [ship, setShip] = useState(new Ship({ two: two, x: 100, y: 100 }));
-  const [keydownListener, setKeydownListener] = useState((e) => {});
+  const [stopped, setStopped] = useState(false);
 
   useEffect(() => {
-    two.appendTo(ref.current);
-    two.update();
-  }, [two]);
-
-  useEffect(() => {
-    document.removeEventListener("keydown", keydownListener);
-    let newListener = (e) => {
-      switch (e?.keyCode) {
-        case 37: // left
-          ship.le = !ship.le;
-          ship.applyPhysics(0.005);
-          break;
-        case 39: // right
-          ship.re = !ship.re;
-          ship.applyPhysics(0.005);
-          break;
-        default:
-          return;
-      }
-    };
-    setKeydownListener(newListener);
-
-    document.addEventListener("keydown", newListener);
-  }, [ship]);
+    console.log(ship);
+    if (two) {
+      two.appendTo(ref.current);
+      two.play();
+    }
+  }, []);
 
   return (
     <>
       <button
         onClick={(e) => {
-          console.log("arr")
           e.preventDefault();
-          console.log(ship.group);
-          two.remove(ship.group);
-          let newShip = new Ship({ two: two, x: 100, y: 100 });
-          setShip(newShip);
+          ship.reset(100, 100);
+          if (stopped) {
+            two.bind("update", (frameCount, deltaT) => {
+              ship.applyPhysics(deltaT);
+            });
+            setStopped(false);
+          }
         }}
       >
         Reset
+      </button>
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          if (stopped) {
+            two.bind("update", (frameCount, deltaT) => {
+              ship.applyPhysics(deltaT);
+            });
+            setStopped(false)
+          } else {
+            two.unbind("update");
+            setStopped(true);
+          }
+        }}
+      >
+        {stopped ? "Start" : "Stop"}
       </button>
       <div ref={ref} />
     </>
