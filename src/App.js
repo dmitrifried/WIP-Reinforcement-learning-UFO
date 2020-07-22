@@ -1,6 +1,5 @@
 import React from 'react';
 import './App.css';
-import Two from 'two.js';
 
 import Game from './Game/Game';
 
