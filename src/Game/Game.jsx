@@ -3,9 +3,12 @@ import Two from "two.js";
 import Ship from "./ship.js";
 
 const two = new Two({ height: 500, width: 800, autostart: true });
-two.makeCircle(40, 40, 10);
-two.makeCircle(40, 800, 10);
-two.makeCircle(1000, 0, 10);
+let leftWall = two.makePath(15, 480, 15, 0, 0, 0, 0, 500)
+leftWall.fill = "#eeeeee"
+let floor = two.makePath(15, 480, 800, 480, 800, 500, 0, 500);
+floor.fill = "#cccccc"
+two.makeLine(390, 240, 410, 260);
+two.makeLine(410, 240, 390, 260);
 const ship = new Ship({ two: two, x: 100, y: 100 });
 document.addEventListener("keydown", (e) => {
   switch (e.keyCode) {
@@ -62,7 +65,7 @@ export default function Game(props) {
             two.bind("update", (frameCount, deltaT) => {
               ship.applyPhysics(deltaT);
             });
-            setStopped(false)
+            setStopped(false);
           } else {
             two.unbind("update");
             setStopped(true);
@@ -71,7 +74,9 @@ export default function Game(props) {
       >
         {stopped ? "Start" : "Stop"}
       </button>
-      <div ref={ref} />
+      <p>Use ← and → to turn on the left and right engines. Aim for the X.</p>
+      <br/>
+      <div ref={ref} style={{ border: "solid", display: "inline-block" }} />
     </>
   );
 }

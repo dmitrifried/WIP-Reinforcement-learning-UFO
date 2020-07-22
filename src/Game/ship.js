@@ -86,19 +86,19 @@ export default class Ship {
   }
 
   get maxY() {
-    return this.two.height - 50;
+    return this.two.height - 20;
   }
 
   get maxX() {
-    return this.two.width - 70;
+    return this.two.width - 20;
   }
 
   get minY() {
-    return 50;
+    return 20;
   }
 
   get minX() {
-    return 70;
+    return 20;
   }
 
   /** @returns Two.Vector(ax, ay) */
