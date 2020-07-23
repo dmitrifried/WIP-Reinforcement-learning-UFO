@@ -3,10 +3,10 @@ import Two from "two.js";
 import Ship from "./ship.js";
 
 const two = new Two({ height: 500, width: 800, autostart: true });
-let leftWall = two.makePath(15, 480, 15, 0, 0, 0, 0, 500)
-leftWall.fill = "#eeeeee"
+let leftWall = two.makePath(0, 0, 0, 500, 15, 480, 15, 0, true);
+leftWall.fill = "#e5e5e5"
 let floor = two.makePath(15, 480, 800, 480, 800, 500, 0, 500);
-floor.fill = "#cccccc"
+floor.fill = "#ccddcc"
 two.makeLine(390, 240, 410, 260);
 two.makeLine(410, 240, 390, 260);
 const ship = new Ship({ two: two, x: 100, y: 100 });
@@ -35,7 +35,6 @@ export default function Game(props) {
   const [stopped, setStopped] = useState(false);
 
   useEffect(() => {
-    console.log(ship);
     if (two) {
       two.appendTo(ref.current);
       two.play();

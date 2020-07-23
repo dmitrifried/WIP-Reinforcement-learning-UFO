@@ -150,7 +150,7 @@ export default class Ship {
     let a = this.acceleration;
     let aA = this.angularAcceleration;
 
-    this.group.translation.addSelf(a.clone().multiplyScalar(deltaT));
+    this.group.translation.addSelf(this.v.clone().multiplyScalar(deltaT));
     let p = this.group.translation.clone();
     p.x = Math.max(this.minX, Math.min(p.x, this.maxX));
     p.y = Math.max(this.minY, Math.min(p.y, this.maxY));
@@ -160,6 +160,8 @@ export default class Ship {
 
     this.v.multiplyScalar(1 - deltaT * this.velocityDecay);
     this.v.addSelf(a.multiplyScalar(deltaT));
+    this.v.x = (this.minX < p.x && p.x < this.maxX) ? this.v.x : this.v.x / 1000;
+    this.v.y = (this.minY < p.y && p.y < this.maxY) ? this.v.y : this.v.y / 1000;
 
     this.aV *= 1 - deltaT * this.angularDecay;
     this.aV += aA;
