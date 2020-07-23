@@ -2,13 +2,17 @@ import Two from "two.js";
 
 export default class Ship {
   constructor({ two, x, y }) {
+    [this.baseX, this.baseY] = [0, 0];
+    this.two = two;
+
     const cockpitRadius = 15;
     const shipRadius = 30;
-    [this.baseX, this.baseY] = [0, 0];
+
+    // left flame and right flame *basepoint* locations
     const lf = { x: this.baseX - cockpitRadius, y: this.baseY + 8 };
     const rf = { x: this.baseX + cockpitRadius, y: this.baseY + 8 };
 
-    this.two = two;
+    // each Two object is rendered in order of first -> front, last -> back.
 
     let base = new Two.Ellipse(this.baseX, this.baseY, shipRadius, shipRadius / 3.0);
     base.fill = "#AAAAAA";
@@ -31,8 +35,6 @@ export default class Ship {
       v.x += rf.x - lf.x;
     });
 
-    // let flameGroup = new Two.Group(lFlame, rFlame);
-    // let bodyGroup = new Two.Group(base, cockpit);
     this.group = two.makeGroup(lFlame, rFlame, base, cockpit); // flameGroup, bodyGroup);
 
     two.add(this.group);
@@ -44,6 +46,11 @@ export default class Ship {
     this.aV = 0;
   }
 
+  /**
+   * Set the ship back to (x, y) position with no velocity or rotation, with engines on.
+   * @param {Number} x
+   * @param {Number} y
+   */
   reset(x, y) {
     this.group.translation.set(x, y);
     this.group.rotation = 0;
@@ -70,17 +77,21 @@ export default class Ship {
   }
 
   get engineForce() {
+    // 'acceleration' rather than 'force'
     return 250.0;
   }
 
   get engineTorque() {
+    // 'angular acceleration' rather than 'torque'
     return 0.1;
   }
 
+  /** Rate to reduce velocity per second, e.g. 0.2 reduces velocity by 20% per second. */
   get velocityDecay() {
     return 0.2;
   }
 
+  /** Rate to reduce angular velocity per second, e.g. 0.2 reduces velocity by 20% per second. */
   get angularDecay() {
     return 0.2;
   }
@@ -101,7 +112,7 @@ export default class Ship {
     return 20;
   }
 
-  /** @returns Two.Vector(ax, ay) */
+  /** @returns {Two.Vector} (ax, ay) */
   get acceleration() {
     let theta = this.theta;
     let [le, re] = [this.le, this.re];
@@ -111,6 +122,7 @@ export default class Ship {
     return new Two.Vector(ax, ay);
   }
 
+  /** @returns {Number} angular acceleration as scalar */
   get angularAcceleration() {
     let [le, re] = [this.leftEngine, this.rightEngine];
     if (le && !re) {
@@ -130,16 +142,26 @@ export default class Ship {
     return this.rightEngine;
   }
 
+  /**
+   * @param {Boolean} leftEngine set to on/off
+   */
   set le(leftEngine) {
     this.leftEngine = leftEngine;
     this.leftFlameTip.y = leftEngine ? this.baseY + 23 : this.baseY;
   }
 
+  /**
+   * @param {Boolean} leftEngine set to on/off
+   */
   set re(rightEngine) {
     this.rightEngine = rightEngine;
     this.rightFlameTip.y = rightEngine ? this.baseY + 23 : this.baseY;
   }
 
+  /**
+   * Apply movement physics to the Ship. deltaT may *not* be larger than 1000ms.
+   * @param {Number} deltaT timespan in milliseconds
+   */
   applyPhysics(deltaT) {
     deltaT = deltaT / 1000.0;
     if (deltaT > 1) {
@@ -160,8 +182,8 @@ export default class Ship {
 
     this.v.multiplyScalar(1 - deltaT * this.velocityDecay);
     this.v.addSelf(a.multiplyScalar(deltaT));
-    this.v.x = (this.minX < p.x && p.x < this.maxX) ? this.v.x : this.v.x / 1000;
-    this.v.y = (this.minY < p.y && p.y < this.maxY) ? this.v.y : this.v.y / 1000;
+    this.v.x = this.minX < p.x && p.x < this.maxX ? this.v.x : this.v.x / 1000;
+    this.v.y = this.minY < p.y && p.y < this.maxY ? this.v.y : this.v.y / 1000;
 
     this.aV *= 1 - deltaT * this.angularDecay;
     this.aV += aA;

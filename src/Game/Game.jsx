@@ -2,32 +2,50 @@ import React, { useState, useEffect, useRef } from "react";
 import Two from "two.js";
 import Ship from "./ship.js";
 
-const two = new Two({ height: 500, width: 800, autostart: true });
-let leftWall = two.makePath(0, 0, 0, 500, 15, 480, 15, 0, true);
-leftWall.fill = "#e5e5e5"
-let floor = two.makePath(15, 480, 800, 480, 800, 500, 0, 500);
-floor.fill = "#ccddcc"
-two.makeLine(390, 240, 410, 260);
-two.makeLine(410, 240, 390, 260);
-const ship = new Ship({ two: two, x: 100, y: 100 });
-document.addEventListener("keydown", (e) => {
-  switch (e.keyCode) {
-    case 37: // left
-      e.preventDefault();
-      ship.le = !ship.le;
-      break;
-    case 39: // right
-      e.preventDefault();
-      ship.re = !ship.re;
-      break;
-    default:
-      return;
-  }
-});
+/** 
+ * Imperatively create an instance of the 'two.js' canvas and a Ship object.
+ * @returns [two, ship]
+ * @see Ship
+ */
+function initializeShip() {
+  const two = new Two({ height: 500, width: 800, autostart: true });
 
-two.bind("update", (frameCount, deltaT) => {
-  ship.applyPhysics(deltaT);
-});
+  // constructing simple background
+  let leftWall = two.makePath(0, 0, 0, 500, 15, 480, 15, 0, true);
+  leftWall.fill = "#e5e5e5";
+  let floor = two.makePath(15, 480, 800, 480, 800, 500, 0, 500);
+  floor.fill = "#ccddcc";
+
+  // put 'X' target in center of canvas
+  two.makeLine(390, 240, 410, 260);
+  two.makeLine(410, 240, 390, 260);
+
+  const ship = new Ship({ two: two, x: 100, y: 100 });
+
+  // Toggle left and right engines with left and right arrows.
+  document.addEventListener("keydown", (e) => {
+    switch (e.keyCode) {
+      case 37: // left
+        e.preventDefault();
+        ship.le = !ship.le;
+        break;
+      case 39: // right
+        e.preventDefault();
+        ship.re = !ship.re;
+        break;
+      default:
+        return;
+    }
+  });
+
+  two.bind("update", (frameCount, deltaT) => {
+    ship.applyPhysics(deltaT);
+  });
+
+  return [two, ship];
+}
+
+const [two, ship] = initializeShip();
 
 export default function Game(props) {
   const ref = useRef(null);
@@ -74,7 +92,7 @@ export default function Game(props) {
         {stopped ? "Start" : "Stop"}
       </button>
       <p>Use ← and → to turn on the left and right engines. Aim for the X.</p>
-      <br/>
+      <br />
       <div ref={ref} style={{ border: "solid", display: "inline-block" }} />
     </>
   );
