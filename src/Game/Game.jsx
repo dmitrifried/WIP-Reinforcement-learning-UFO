@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import Two from "two.js";
 import Ship from "./ship.js";
+import Agent from "./agent";
 
 /** 
  * Imperatively create an instance of the 'two.js' canvas and a Ship object.
  * @returns [two, ship]
  * @see Ship
  */
-function initializeShip() {
+function initializeCanvas() {
   const two = new Two({ height: 500, width: 800, autostart: true });
 
   // constructing simple background
@@ -45,7 +46,7 @@ function initializeShip() {
   return [two, ship];
 }
 
-const [two, ship] = initializeShip();
+const [two, ship] = initializeCanvas();
 
 export default function Game(props) {
   const ref = useRef(null);

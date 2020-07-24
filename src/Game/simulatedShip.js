@@ -1,49 +1,12 @@
-import Two from "two.js";
+import Ship from "./ship";
+import Vector from "victor";
 
-export default class Ship {
-  constructor({ two, x, y }) {
-    [this.baseX, this.baseY] = [0, 0];
-    this.two = two;
+export default class SimulatedShip {
+  constructor(x, y) {
+    this.twoHeight = 500;
+    this.twoWidth = 800;
 
-    const cockpitRadius = 15;
-    const shipRadius = 30;
-
-    // left flame and right flame *basepoint* locations
-    const lf = { x: this.baseX - cockpitRadius, y: this.baseY + 8 };
-    const rf = { x: this.baseX + cockpitRadius, y: this.baseY + 8 };
-
-    // each Two object is rendered in order of first -> front, last -> back.
-
-    let base = new Two.Ellipse(this.baseX, this.baseY, shipRadius, shipRadius / 3.0);
-    base.fill = "#AAAAAA";
-
-    let cockpit = new Two.ArcSegment(this.baseX, this.baseY, 0, cockpitRadius, -Math.PI, 0);
-    cockpit.fill = "#DDDDDD";
-
-    this.leftFlameTip = new Two.Anchor(lf.x, lf.y + 15);
-    let leftFlameAnchors = [
-      new Two.Anchor(lf.x - 5, lf.y),
-      this.leftFlameTip,
-      new Two.Anchor(lf.x + 5, lf.y),
-    ];
-    let lFlame = new Two.Path(leftFlameAnchors, false, false);
-    lFlame.fill = "Red";
-
-    let rFlame = lFlame.clone();
-    this.rightFlameTip = rFlame.vertices[1];
-    rFlame.vertices.forEach((v) => {
-      v.x += rf.x - lf.x;
-    });
-
-    this.group = two.makeGroup(lFlame, rFlame, base, cockpit); // flameGroup, bodyGroup);
-
-    two.add(this.group);
-
-    this.group.translation.set(x, y);
-    this.leftEngine = true;
-    this.rightEngine = true;
-    this.v = new Two.Vector(0, 0);
-    this.aV = 0;
+    this.reset(x, y);
   }
 
   /**
@@ -52,24 +15,12 @@ export default class Ship {
    * @param {Number} y
    */
   reset(x, y) {
-    this.group.translation.set(x, y);
-    this.group.rotation = 0;
-    this.v.set(0, 0);
+    this.p = Vector(x, y);
+    this.v = Vector(0, 0);
     this.aV = 0;
     this.leftEngine = true;
     this.rightEngine = true;
-  }
-
-  get theta() {
-    return this.group.rotation - Math.PI / 2.0;
-  }
-
-  get state() {
-    return {
-      pos: this.group.translation,
-      v: this.v,
-      aV: this.aV,
-    };
+    this.theta = 0;
   }
 
   get gravity() {
@@ -97,11 +48,11 @@ export default class Ship {
   }
 
   get maxY() {
-    return this.two.height - 20;
+    return this.twoHeight - 20;
   }
 
   get maxX() {
-    return this.two.width - 20;
+    return this.twoWidth - 20;
   }
 
   get minY() {
@@ -112,14 +63,14 @@ export default class Ship {
     return 20;
   }
 
-  /** @returns {Two.Vector} (ax, ay) */
+  /** @returns {Vector} (ax, ay) */
   get acceleration() {
     let theta = this.theta;
     let [le, re] = [this.le, this.re];
     let engineMult = ((le ? 1 : 0) + (re ? 1 : 0)) * this.engineForce;
     let ay = this.gravity + engineMult * Math.sin(theta);
     let ax = engineMult * Math.cos(theta);
-    return new Two.Vector(ax, ay);
+    return Vector(ax, ay);
   }
 
   /** @returns {Number} angular acceleration as scalar */
@@ -134,20 +85,11 @@ export default class Ship {
     }
   }
 
-  get le() {
-    return this.leftEngine;
-  }
-
-  get re() {
-    return this.rightEngine;
-  }
-
   /**
    * @param {Boolean} leftEngine set to on/off
    */
   set le(leftEngine) {
     this.leftEngine = leftEngine;
-    this.leftFlameTip.y = leftEngine ? this.baseY + 23 : this.baseY;
   }
 
   /**
@@ -155,7 +97,6 @@ export default class Ship {
    */
   set re(rightEngine) {
     this.rightEngine = rightEngine;
-    this.rightFlameTip.y = rightEngine ? this.baseY + 23 : this.baseY;
   }
 
   /**
@@ -164,21 +105,18 @@ export default class Ship {
    */
   applyPhysics(deltaT) {
     deltaT = deltaT / 1000.0;
-    if (deltaT > 1) {
-      return;
-    }
 
     // y is inverted
     let a = this.acceleration;
     let aA = this.angularAcceleration;
 
-    this.group.translation.addSelf(this.v.clone().multiplyScalar(deltaT));
-    let p = this.group.translation.clone();
+    this.p.add(this.v.clone().multiplyScalar(deltaT));
+    let p = this.p.clone();
     p.x = Math.max(this.minX, Math.min(p.x, this.maxX));
     p.y = Math.max(this.minY, Math.min(p.y, this.maxY));
 
-    this.group.translation = p;
-    this.group.rotation += this.aV * deltaT;
+    this.p = p;
+    this.p += this.aV * deltaT;
 
     this.v.multiplyScalar(1 - deltaT * this.velocityDecay);
     this.v.addSelf(a.multiplyScalar(deltaT));
@@ -187,5 +125,18 @@ export default class Ship {
 
     this.aV *= 1 - deltaT * this.angularDecay;
     this.aV += aA;
+  }
+
+  /**
+   * Simulate physics for a number of milliseconds using 
+   *  a smaller deltaT for continuous physics.
+   * @param {Number} totalT
+   * @param {Number} deltaT
+   */
+  simulateTime(totalT, deltaT) {
+    let n = totalT / deltaT;
+    for (let i = 0; i < n; i++) {
+      this.applyPhysics(deltaT);
+    }
   }
 }

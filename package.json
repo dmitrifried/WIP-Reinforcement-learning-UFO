@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@tensorflow/tfjs": "^2.0.1",
+    "@tensorflow/tfjs-node": "^2.0.1",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
     "@testing-library/user-event": "^7.2.1",
@@ -11,7 +13,8 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",
-    "two.js": "^0.7.0-stable.1"
+    "two.js": "^0.7.0-stable.1",
+    "victor": "^1.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -36,5 +39,7 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "webpack-node-externals": "^2.5.0"
+  }
 }
