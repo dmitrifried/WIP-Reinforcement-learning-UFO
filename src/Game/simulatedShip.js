@@ -1,4 +1,3 @@
-import Ship from "./ship";
 import Vector from "victor";
 
 export default class SimulatedShip {
