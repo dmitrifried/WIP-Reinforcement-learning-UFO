@@ -1,7 +1,3 @@
-import * as tf from '@tensorflow/tfjs';
-
-console.log(`TensorFlow version ${tf.version}`);
-
 /**
  * @see https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
  */

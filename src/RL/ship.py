@@ -45,6 +45,10 @@ class Ship:
     self.velocityDecay = 0.2
     
     self.angularDecay = 0.2
+
+  def state(self):
+    """Return the state of the ship as [p.x, p.y, theta, v.x, v.y, aV]"""
+    return [self.p.x, self.p.y, self.theta, self.v.x, self.v.y, self.aV]
     
   def acceleration(self):
     engineMult = self.le + self.re
@@ -61,7 +65,7 @@ class Ship:
       return 0
   
   def applyPhysics(self, deltaT):
-    deltaT = deltaT / 1000.0
+    deltaT = deltaT
 
     # y is inverted
     a = self.acceleration()

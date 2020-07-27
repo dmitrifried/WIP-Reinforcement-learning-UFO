@@ -67,6 +67,7 @@ export default class Ship {
   get state() {
     return {
       pos: this.group.translation,
+      theta: this.group.rotation,
       v: this.v,
       aV: this.aV,
     };
