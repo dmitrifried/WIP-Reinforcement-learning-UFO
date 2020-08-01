@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 class Vector:
   def __init__(self, x, y):
@@ -8,7 +9,7 @@ class Vector:
   def __add__(self, v):
     return Vector(self.x + v.x, self.y + v.y)
   
-  def __mult__(self, c):
+  def __mul__(self, c):
     return Vector(self.x * c, self.y * c)
 
   def limit(self, xLo, xHi, yLo, yHi):
@@ -30,12 +31,13 @@ class Ship:
     self.maxY = 480
 
     self.p = Vector(x, y)
-    self.v = Vector(0, 0)
-    self.aV = 0
+    self.v = Vector(0.0, 0.0)
+    self.aV = 0.0
     self.le = True
     self.re = True
-    self.theta = 0
+    self.theta = -math.pi / 2.0
 
+    # downwards is positive y
     self.gravity = 300.0
 
     self.engineForce = 250.0
@@ -48,10 +50,10 @@ class Ship:
 
   def state(self):
     """Return the state of the ship as [p.x, p.y, theta, v.x, v.y, aV]"""
-    return [self.p.x, self.p.y, self.theta, self.v.x, self.v.y, self.aV]
+    return np.array([self.p.x, self.p.y, self.theta, self.v.x, self.v.y, self.aV], dtype=np.float32)
     
   def acceleration(self):
-    engineMult = self.le + self.re
+    engineMult = (self.le + self.re) * self.engineForce
     ay = self.gravity + engineMult * math.sin(self.theta)
     ax = engineMult * math.cos(self.theta)
     return Vector(ax, ay)
@@ -74,13 +76,16 @@ class Ship:
     self.p += self.v * deltaT
     self.p.limit(self.minX, self.maxX, self.minY, self.maxY)
     
+    self.theta += self.aV * deltaT % (2 * math.pi)
+
     self.v *= 1 - deltaT * self.velocityDecay
     self.v += a * deltaT
+
     if self.p.x <= self.minX or self.p.y >= self.maxX:
       self.v.x *= 0.001
     
     if self.p.y <= self.minY or self.p.y >= self.maxY:
       self.v.y *= 0.001
-    
+
     self.aV *= 1 - deltaT * self.angularDecay
-    self.aV += aA;
+    self.aV += aA * deltaT
