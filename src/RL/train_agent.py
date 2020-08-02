@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import math
+import os
+import matplotlib.pyplot as plt
 
 import tensorflow as tf
 tf.compat.v1.enable_v2_behavior()
@@ -13,32 +15,34 @@ from tf_agents.agents.dqn import dqn_agent
 from tf_agents.networks import q_network
 from tf_agents.environments import utils
 from tf_agents.utils import common
-from tf_agents.policies import random_tf_policy, tf_policy
+from tf_agents.policies import random_tf_policy, tf_policy, policy_saver
 from tf_agents.eval import metric_utils
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.environments import tf_py_environment
 
-import matplotlib.pyplot as plt
-
 from ship_environment import ShipEnv
 import ship_environment
 
+policy_dir = os.getenv("POLICY_DIR") or os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "public", "agent", "policy.tf")
+if not os.path.isdir(policy_dir):
+  raise Exception("Could not find directory for saving policy.")
+
 ### Hyperparameters ###
-num_iterations = 500 # @param {type:"integer"}
+num_iterations = 10000 # @param {type:"integer"}
 
 initial_collect_steps = 2000  # @param {type:"integer"} 
-collect_steps_per_iteration = 4  # @param {type:"integer"}
+collect_steps_per_iteration = 8  # @param {type:"integer"}
 replay_buffer_max_length = 10000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-3  # @param {type:"number"}
+learning_rate = 8e-7 # @param {type:"number"}
 log_interval = 100  # @param {type:"integer"}
 
 num_eval_episodes = 10  # @param {type:"integer"}
-eval_interval = 100  # @param {type:"integer"}
+eval_interval = 500  # @param {type:"integer"}
 
-fc_layer_params = (64,)
+fc_layer_params = (128,)
 
 ### Environment ###
 
@@ -129,7 +133,7 @@ agent.train_step_counter.assign(0)
 avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
 returns = [avg_return]
 
-print("Starting simulation.")
+print("[+] Starting simulation.")
 for _ in range(num_iterations):
 
   # Collect a few steps using collect_policy and save to the replay buffer.
@@ -150,6 +154,14 @@ for _ in range(num_iterations):
     print('step = {0}: Average Return = {1}'.format(step, avg_return))
     returns.append(avg_return)
 
+### Saving policy ###
+
+saver = policy_saver.PolicySaver(
+  agent.policy
+)
+
+saver.save(policy_dir)
+
 ### Visualization ###
 
 plt.ioff()
@@ -157,5 +169,4 @@ iterations = range(0, num_iterations + 1, eval_interval)
 plt.plot(iterations, returns)
 plt.ylabel('Average Return')
 plt.xlabel('Iterations')
-plt.ylim(top=250)
 plt.show()

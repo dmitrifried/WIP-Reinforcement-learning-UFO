@@ -16,7 +16,6 @@ class ShipEnv(py_environment.PyEnvironment):
   def __init__(self, goalX=500.0, goalY=400.0):
     x, y = goalX + random.randint(-100, 100), goalY + random.randint(-100, 100)
     self._ship = Ship(x, y)
-    print(f"Ship initialized: {x:03}, {y:03}")
 
     self._action_spec = array_spec.BoundedArraySpec(shape = (), dtype=np.int32, minimum=0, maximum=3, name='action')
     self._observation_spec = array_spec.ArraySpec(shape=(6,), dtype=np.float32, name='observation')
@@ -24,7 +23,7 @@ class ShipEnv(py_environment.PyEnvironment):
     self._episode_ended = False
 
     self._time_elapsed = 0
-    self._time_cap = 300 # seconds
+    self._time_cap = 60 # seconds
     self._time_interval = 1.0 / 5.0 # fps
 
     self.reward = 0
@@ -77,8 +76,12 @@ class ShipEnv(py_environment.PyEnvironment):
     dot = (v[0]*dp[0] + v[1]*dp[1])
     dot = dot and dot / (mv * mdp)
 
-    # with perfect alignment, award 1 point per second
-    reward = dot * self._time_interval
+    # with perfect trajectory toward goal, award 1 points per second
+    reward = (0.5 * dot + 0.5) * self._time_interval
+
+    # add reward based on distance, at goal add 1 point per second
+    reward += (1 - (mdp / self._terminal_distance)) * self._time_interval
+
     self.reward += reward
     self._ship.le, self._ship.re = action // 2, action % 2 # 0, 1, 2, 3 -> 00, 01, 10, 11
     self._ship.applyPhysics(self._time_interval)
