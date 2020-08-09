@@ -63,8 +63,9 @@ class ShipEnv(py_environment.PyEnvironment):
     v = [self._state[3], self._state[4]]
     mv = math.sqrt(v[0]**2 + v[1]**2)
 
-    # reset if we've gone far
+    # reset if we've gone far, and punish the agent
     if mv > self._terminal_distance:
+      self.reward -= 100
       self._episode_ended = True
       return ts.termination(np.array(self._state, dtype=np.float32), self.reward)
 
@@ -76,8 +77,8 @@ class ShipEnv(py_environment.PyEnvironment):
     dot = (v[0]*dp[0] + v[1]*dp[1])
     dot = dot and dot / (mv * mdp)
 
-    # with perfect trajectory toward goal, award 1 points per second
-    reward = (0.5 * dot + 0.5) * self._time_interval
+    # with perfect trajectory toward goal, award 0.2 points per second
+    reward = 0.2 * (0.5 * dot + 0.5) * self._time_interval
 
     # add reward based on distance, at goal add 1 point per second
     reward += (1 - (mdp / self._terminal_distance)) * self._time_interval
@@ -85,6 +86,11 @@ class ShipEnv(py_environment.PyEnvironment):
     self.reward += reward
     self._ship.le, self._ship.re = action // 2, action % 2 # 0, 1, 2, 3 -> 00, 01, 10, 11
     self._ship.applyPhysics(self._time_interval)
-    self._state = self._ship.state()
+    ship_state = self._ship.state()
+
+    # set state x,y to 'distance from goal'
+    ship_state[0] += self._goalX
+    ship_state[1] += self._goalY
+    self._state = ship_state
 
     return ts.transition(observation=self._state, reward=reward)

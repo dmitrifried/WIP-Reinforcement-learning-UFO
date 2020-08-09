@@ -1,19 +1,13 @@
 /**
- * @see https://www.tensorflow.org/agents/tutorials/1_dqn_tutorial
+ * @see https://www.tensorflow.org/js/tutorials/conversion/import_saved_model
  */
-class Agent {
-  constructor(ship) {
-    this.ship = ship;
 
-    this.numIterations = 20000;
-    this.collectStepsPerIteration = 1;
-    this.replayBufferMaxLength = 100000;
+import * as tf from "@tensorflow/tfjs";
 
-    this.batchSize = 64;
-    this.learningRate = 1e-3;
-    this.logInterval = 200;
+export default async function getModel() {
+  const MODEL_URL = "/agent/model.json";
 
-    this.numEvalEpisodes = 10;
-    this.evalInterval = 1000;
-  }
+  const model = await tf.loadGraphModel(MODEL_URL);
+
+  return model;
 }

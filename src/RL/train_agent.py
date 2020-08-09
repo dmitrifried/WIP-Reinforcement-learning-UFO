@@ -24,23 +24,23 @@ from tf_agents.environments import tf_py_environment
 from ship_environment import ShipEnv
 import ship_environment
 
-policy_dir = os.getenv("POLICY_DIR") or os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "public", "agent", "policy.tf")
+policy_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "agent", "policy.tf")
 if not os.path.isdir(policy_dir):
   raise Exception("Could not find directory for saving policy.")
 
 ### Hyperparameters ###
-num_iterations = 10000 # @param {type:"integer"}
+num_iterations = 5000 # @param {type:"integer"}
 
 initial_collect_steps = 2000  # @param {type:"integer"} 
-collect_steps_per_iteration = 8  # @param {type:"integer"}
+collect_steps_per_iteration = 2  # @param {type:"integer"}
 replay_buffer_max_length = 10000  # @param {type:"integer"}
 
-batch_size = 64  # @param {type:"integer"}
-learning_rate = 8e-7 # @param {type:"number"}
+batch_size = 128  # @param {type:"integer"}
+learning_rate = 2e-6 # @param {type:"number"}
 log_interval = 100  # @param {type:"integer"}
 
 num_eval_episodes = 10  # @param {type:"integer"}
-eval_interval = 500  # @param {type:"integer"}
+eval_interval = 1000  # @param {type:"integer"}
 
 fc_layer_params = (128,)
 
@@ -77,7 +77,7 @@ random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(), trai
 
 ### Metrics ###
 
-def compute_avg_return(env: tf_py_environment.TFPyEnvironment, policy: tf_policy.Base, num_episodes):
+def compute_avg_return(env: tf_py_environment.TFPyEnvironment, policy, num_episodes):
   total_return = 0.0
   for _ in range(num_episodes):
     time_step = env.reset()
@@ -99,7 +99,7 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
   max_length=replay_buffer_max_length
 )
 
-def collect_step(env: tf_py_environment.TFPyEnvironment, policy: tf_policy.Base, buffer):
+def collect_step(env: tf_py_environment.TFPyEnvironment, policy, buffer):
   time_step = env.current_time_step()
   action_step = policy.action(time_step)
   next_time_step = env.step(action_step.action)
@@ -157,7 +157,7 @@ for _ in range(num_iterations):
 ### Saving policy ###
 
 saver = policy_saver.PolicySaver(
-  agent.policy
+  agent.policy, batch_size=1
 )
 
 saver.save(policy_dir)
