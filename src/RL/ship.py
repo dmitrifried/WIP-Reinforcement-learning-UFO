@@ -25,11 +25,6 @@ class Vector:
 
 class Ship:
   def __init__(self, x, y):
-    self.minX = 20
-    self.maxX = 780
-    self.minY = 20
-    self.maxY = 480
-
     self.p = Vector(x, y)
     self.v = Vector(0.0, 0.0)
     self.aV = 0.0
@@ -46,7 +41,7 @@ class Ship:
 
     self.velocityDecay = 0.2
     
-    self.angularDecay = 0.2
+    self.angularDecay = 0.5
 
   def state(self):
     """Return the state of the ship as [p.x, p.y, theta, v.x, v.y, aV]"""
@@ -74,18 +69,11 @@ class Ship:
     aA = self.angularAcceleration()
 
     self.p += self.v * deltaT
-    self.p.limit(self.minX, self.maxX, self.minY, self.maxY)
     
     self.theta += self.aV * deltaT % (2 * math.pi)
 
     self.v *= 1 - deltaT * self.velocityDecay
     self.v += a * deltaT
-
-    if self.p.x <= self.minX or self.p.y >= self.maxX:
-      self.v.x *= 0.001
-    
-    if self.p.y <= self.minY or self.p.y >= self.maxY:
-      self.v.y *= 0.001
 
     self.aV *= 1 - deltaT * self.angularDecay
     self.aV += aA * deltaT

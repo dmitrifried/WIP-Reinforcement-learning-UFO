@@ -43,7 +43,7 @@ export default class Ship {
     this.leftEngine = true;
     this.rightEngine = true;
     this.v = new Two.Vector(0, 0);
-    this.aV = 0;
+    this.aV = 0.1;
   }
 
   /**
@@ -94,7 +94,7 @@ export default class Ship {
 
   /** Rate to reduce angular velocity per second, e.g. 0.2 reduces velocity by 20% per second. */
   get angularDecay() {
-    return 0.2;
+    return 0.5;
   }
 
   get maxY() {

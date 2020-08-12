@@ -13,12 +13,12 @@ from tf_agents.trajectories import time_step as ts
 from ship import Ship
 
 class ShipEnv(py_environment.PyEnvironment):
-  def __init__(self, goalX=500.0, goalY=400.0):
+  def __init__(self, goalX=0.0, goalY=0.0):
     x, y = goalX + random.randint(-100, 100), goalY + random.randint(-100, 100)
     self._ship = Ship(x, y)
 
     self._action_spec = array_spec.BoundedArraySpec(shape = (), dtype=np.int32, minimum=0, maximum=3, name='action')
-    self._observation_spec = array_spec.ArraySpec(shape=(6,), dtype=np.float32, name='observation')
+    self._observation_spec = array_spec.ArraySpec(shape=(7,), dtype=np.float32, name='observation')
     self._state = self._ship.state()
     self._episode_ended = False
 
@@ -26,10 +26,9 @@ class ShipEnv(py_environment.PyEnvironment):
     self._time_cap = 60 # seconds
     self._time_interval = 1.0 / 5.0 # fps
 
-    self.reward = 0
     self._goalX = goalX
     self._goalY = goalY
-    self._terminal_distance = 500
+    self._terminal_distance = 1200
 
   def action_spec(self):
     return self._action_spec
@@ -41,10 +40,13 @@ class ShipEnv(py_environment.PyEnvironment):
     x, y = self._goalX + random.randint(-100, 100), self._goalY + random.randint(-100, 100)
     self._ship = Ship(x, y)
     self._state = self._ship.state()
+    self._state = np.insert(self._state, 3, math.cos(self._state[2]))
+    self._state[2] = math.sin(self._state[2])
+    self._state[0] = self._goalX - self._state[0]
+    self._state[1] = self._goalY - self._state[1]
     self._episode_ended = False
     self._time_elapsed = 0
-    self.reward = 0
-    return ts.restart(np.array(self._state, dtype=np.float32))
+    return ts.restart(self._state)
 
   def _step(self, action):
     if self._episode_ended:
@@ -52,45 +54,58 @@ class ShipEnv(py_environment.PyEnvironment):
       # a new episode.
       return self.reset()
 
-    # Make sure episodes don't go on forever.
+    # the agent survived the full episode
     if self._time_elapsed > self._time_cap:
       self._episode_ended = True
-      return ts.termination(np.array(self._state, dtype=np.float32), self.reward)
+      return ts.termination(np.array(self._state, dtype=np.float32), 100)
     
     self._time_elapsed += self._time_interval
 
     # velocity, magnitude of velocity
-    v = [self._state[3], self._state[4]]
-    mv = math.sqrt(v[0]**2 + v[1]**2)
-
-    # reset if we've gone far, and punish the agent
-    if mv > self._terminal_distance:
-      self.reward -= 100
-      self._episode_ended = True
-      return ts.termination(np.array(self._state, dtype=np.float32), self.reward)
+    # v = [self._state[3], self._state[4]]
+    # mv = math.sqrt(v[0]**2 + v[1]**2)
 
     # delta to goal, magnitude of delta
-    dp = [self._goalX - self._state[0], self._goalY - self._state[1]]
+    dp = [self._state[0], self._state[1]]
     mdp = math.sqrt(dp[0]**2 + dp[1]**2)
 
+    # reset if we've gone far, and punish the agent
+    if mdp > self._terminal_distance:
+      self._episode_ended = True
+      return ts.termination(np.array(self._state, dtype=np.float32), -50)
+
     # unitary dot product to measure alignment of v to dp
-    dot = (v[0]*dp[0] + v[1]*dp[1])
-    dot = dot and dot / (mv * mdp)
+    # dot = (v[0]*dp[0] + v[1]*dp[1])
+    # dot = dot and dot / (mv * mdp)
 
-    # with perfect trajectory toward goal, award 0.2 points per second
-    reward = 0.2 * (0.5 * dot + 0.5) * self._time_interval
+    # 1 point per second for existing
+    reward = 1
 
-    # add reward based on distance, at goal add 1 point per second
-    reward += (1 - (mdp / self._terminal_distance)) * self._time_interval
+    # 3 points per second for being within 150 of goal
+    if mdp < 150:
+      reward += 5
+    elif mdp < 300:
+      reward += 2
+    elif mdp > 600:
+      reward -= 2
 
-    self.reward += reward
+    # -1 point per second for spinning fast
+    if self._state[5] > math.pi / 2 or self._state[5] < -math.pi / 2:
+      reward -= 2
+
+    # - 1 point for not keeping the ship aligned
+
+
+    reward *= self._time_interval
     self._ship.le, self._ship.re = action // 2, action % 2 # 0, 1, 2, 3 -> 00, 01, 10, 11
     self._ship.applyPhysics(self._time_interval)
     ship_state = self._ship.state()
+    ship_state = np.insert(ship_state, 3, math.cos(ship_state[2]))
+    ship_state[2] = math.sin(ship_state[2])
 
     # set state x,y to 'distance from goal'
-    ship_state[0] += self._goalX
-    ship_state[1] += self._goalY
+    ship_state[0] = self._goalX - ship_state[0]
+    ship_state[1] = self._goalY - ship_state[1]
     self._state = ship_state
 
     return ts.transition(observation=self._state, reward=reward)

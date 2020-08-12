@@ -4,7 +4,7 @@ import Ship from "./ship.js";
 import getAgent from "./agent";
 import * as tf from '@tensorflow/tfjs';
 
-tf.registerOp("BroadcastArgs")
+tf.registerOp("BroadcastArgs");
 
 export default function Game(props) {
   const ref = useRef(null);
@@ -18,7 +18,9 @@ export default function Game(props) {
    * Asynchronously create an instance of the 'two.js' canvas, a Ship object, and the agent.
    */
   async function initializeGame() {
-    const [gameHeight, gameWidth] = [600, 800];
+    const [gameWidth, gameHeight] = [500, 400];
+    const [startX, startY] = [250, 350]
+    const [goalX, goalY] = [300, 150];
     const two = new Two({ height: gameHeight, width: gameWidth, autostart: true });
 
     // constructing simple background
@@ -37,28 +39,12 @@ export default function Game(props) {
     floor.fill = "#ccddcc";
 
     // put 'X' target in center of canvas
-    two.makeLine(490, 390, 510, 410);
-    two.makeLine(510, 390, 490, 410);
+    two.makeLine(goalX - 10, goalY - 10, goalX + 10, goalY + 10);
+    two.makeLine(goalX + 10, goalY - 10, goalX - 10, goalY + 10);
 
-    const ship = new Ship({ two: two, x: 300, y: 300 });
+    const ship = new Ship({ two: two, x: startX, y: startY });
 
     const agent = await getAgent();
-
-    // Toggle left and right engines with left and right arrows.
-    document.addEventListener("keydown", (e) => {
-      switch (e.keyCode) {
-        case 37: // left
-          e.preventDefault();
-          ship.le = !ship.le;
-          break;
-        case 39: // right
-          e.preventDefault();
-          ship.re = !ship.re;
-          break;
-        default:
-          return;
-      }
-    });
 
     two.bind("update", (frameCount, deltaT) => {
       ship.applyPhysics(deltaT);
@@ -69,7 +55,7 @@ export default function Game(props) {
           'reward': tf.tensor([0.0]),
           // 'step_type': tf.tensor([[0]], "int32"),
           'observation': tf.tensor(
-          [[state.pos.x, state.pos.y, state.theta, state.v.x, state.v.y, state.aV]]
+          [[goalX - state.pos.x, goalY - state.pos.y, Math.sin(state.theta), Math.cos(state.theta), state.v.x, state.v.y, state.aV]]
         )},
         {batchSize: 1}
       )
@@ -129,8 +115,9 @@ export default function Game(props) {
       >
         {stopped ? "Start" : "Stop"}
       </button>
-      <p>Use ← and → to turn on the left and right engines. Aim for the X.</p>
+      <p>An intelligent UFO taught by reinforcement learning is aiming to hover near the X.</p>
       <br />
+      {two ? null : <h3>Loading...</h3>}
       <div ref={ref} style={{ border: "solid", display: "inline-block" }} />
     </>
   );

@@ -22,7 +22,7 @@ dict_value {
               name: "observation"
               shape {
                 dim {
-                  size: 6
+                  size: 7
                 }
               }
               dtype: DT_FLOAT

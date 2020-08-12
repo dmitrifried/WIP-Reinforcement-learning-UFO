@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@tensorflow/tfjs": "^2.1.0",
-    "@tensorflow/tfjs-core": "^2.1.0",
+    "@babel/core": "^7.11.1",
+    "@tensorflow/tfjs": "^2.0.1",
+    "@tensorflow/tfjs-core": "^2.0.1",
     "@tensorflow/tfjs-node": "^2.0.1",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.5.0",
@@ -20,7 +21,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "build-model": "python src/RL/train_agent.py && ./agent/policy_convert.sh",
+    "build-model": "python src/RL/train_agent.py && sh agent/policy_convert.sh",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",

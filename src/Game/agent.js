@@ -5,7 +5,7 @@
 import * as tf from "@tensorflow/tfjs";
 
 export default async function getModel() {
-  const MODEL_URL = "/agent/model.json";
+  const MODEL_URL = process.env.PUBLIC_URL + "/agent/model.json";
 
   const model = await tf.loadGraphModel(MODEL_URL);
 

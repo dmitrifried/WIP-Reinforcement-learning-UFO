@@ -6,6 +6,7 @@ import numpy as np
 import math
 import os
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
 
 import tensorflow as tf
 tf.compat.v1.enable_v2_behavior()
@@ -29,18 +30,18 @@ if not os.path.isdir(policy_dir):
   raise Exception("Could not find directory for saving policy.")
 
 ### Hyperparameters ###
-num_iterations = 5000 # @param {type:"integer"}
+num_iterations = 20000 # @param {type:"integer"}
 
-initial_collect_steps = 2000  # @param {type:"integer"} 
-collect_steps_per_iteration = 2  # @param {type:"integer"}
-replay_buffer_max_length = 10000  # @param {type:"integer"}
+initial_collect_steps = 10000  # @param {type:"integer"} 
+collect_steps_per_iteration = 20  # @param {type:"integer"}
+replay_buffer_max_length = 100000  # @param {type:"integer"}
 
-batch_size = 128  # @param {type:"integer"}
-learning_rate = 2e-6 # @param {type:"number"}
-log_interval = 100  # @param {type:"integer"}
+batch_size = 64  # @param {type:"integer"}
+learning_rate = 1e-6 # @param {type:"number"}
+log_interval = 200  # @param {type:"integer"}
 
 num_eval_episodes = 10  # @param {type:"integer"}
-eval_interval = 1000  # @param {type:"integer"}
+eval_interval = 2000  # @param {type:"integer"}
 
 fc_layer_params = (128,)
 
@@ -134,6 +135,7 @@ avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
 returns = [avg_return]
 
 print("[+] Starting simulation.")
+start = timer()
 for _ in range(num_iterations):
 
   # Collect a few steps using collect_policy and save to the replay buffer.
@@ -149,10 +151,15 @@ for _ in range(num_iterations):
   if step % log_interval == 0:
     print('step = {0}: loss = {1}'.format(step, train_loss))
 
-  if step % eval_interval == 0:
+  if step % eval_interval == 1:
     avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
     print('step = {0}: Average Return = {1}'.format(step, avg_return))
     returns.append(avg_return)
+
+end = timer()
+d, m = divmod(end - start, 60)
+
+print(f"[+] Total processing time: {d} minutes and {m} seconds")
 
 ### Saving policy ###
 
