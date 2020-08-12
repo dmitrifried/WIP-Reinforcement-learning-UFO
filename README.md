@@ -18,4 +18,4 @@ ___
 
 #### Bad rewards
 
-![Bad UFO](https://github.com/dmitrifried/WIP-Reinforcement-Learning-UFO/UFO_Bad.gif)
+![Bad UFO](https://github.com/dmitrifried/WIP-Reinforcement-learning-UFO/blob/master/UFO_Bad.gif)
