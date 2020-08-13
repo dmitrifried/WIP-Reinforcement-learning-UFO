@@ -24,7 +24,7 @@ class ShipEnv(py_environment.PyEnvironment):
 
     self._time_elapsed = 0
     self._time_cap = 60 # seconds
-    self._time_interval = 1.0 / 5.0 # fps
+    self._time_interval = 1.0 / 2.0 # fps
 
     self._goalX = goalX
     self._goalY = goalY
@@ -87,10 +87,10 @@ class ShipEnv(py_environment.PyEnvironment):
     elif mdp < 300:
       reward += 2
     elif mdp > 600:
-      reward -= 2
+      reward -= 0.5
 
     # -1 point per second for spinning fast
-    if self._state[5] > math.pi / 2 or self._state[5] < -math.pi / 2:
+    if self._state[6] > math.pi or self._state[6] < -math.pi:
       reward -= 2
 
     # - 1 point for not keeping the ship aligned

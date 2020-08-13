@@ -30,20 +30,20 @@ if not os.path.isdir(policy_dir):
   raise Exception("Could not find directory for saving policy.")
 
 ### Hyperparameters ###
-num_iterations = 20000 # @param {type:"integer"}
+num_iterations = 50000 # @param {type:"integer"}
 
 initial_collect_steps = 10000  # @param {type:"integer"} 
 collect_steps_per_iteration = 20  # @param {type:"integer"}
 replay_buffer_max_length = 100000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-6 # @param {type:"number"}
-log_interval = 200  # @param {type:"integer"}
+learning_rate = 1e-5 # @param {type:"number"}
+log_interval = 500  # @param {type:"integer"}
 
 num_eval_episodes = 10  # @param {type:"integer"}
-eval_interval = 2000  # @param {type:"integer"}
+eval_interval = 5000  # @param {type:"integer"}
 
-fc_layer_params = (128,)
+fc_layer_params = (128,32)
 
 ### Environment ###
 
@@ -175,5 +175,5 @@ plt.ioff()
 iterations = range(0, num_iterations + 1, eval_interval)
 plt.plot(iterations, returns)
 plt.ylabel('Average Return')
-plt.xlabel('Iterations')
+plt.xlabel(f'Iterations (Total time: {d} minutes and {m} seconds)')
 plt.show()
