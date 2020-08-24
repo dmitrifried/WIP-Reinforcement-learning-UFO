@@ -23,8 +23,9 @@ class ShipEnv(py_environment.PyEnvironment):
     self._episode_ended = False
 
     self._time_elapsed = 0
-    self._time_cap = 60 # seconds
-    self._time_interval = 1.0 / 2.0 # fps
+    self._time_cap = 15 # seconds
+    self._time_interval = 1.0 / 5.0 # fps
+    self._physics_interval = 1.0 / 60.0
 
     self._goalX = goalX
     self._goalY = goalY
@@ -37,11 +38,14 @@ class ShipEnv(py_environment.PyEnvironment):
     return self._observation_spec
 
   def _reset(self):
-    x, y = self._goalX + random.randint(-100, 100), self._goalY + random.randint(-100, 100)
-    self._ship = Ship(x, y)
+    x, y = self._goalX + random.randint(-400, 400), self._goalY + random.randint(-400, 400)
+    vx, vy = random.randint(-5, 5), self._goalY + random.randint(-5, 20)
+    aV = (random.random() - 0.5) * 0.05
+    self._ship = Ship(x, y, vx, vy, aV)
+    self._ship.theta = (-math.pi / 2.0) + 0.15 * random.random()
     self._state = self._ship.state()
     self._state = np.insert(self._state, 3, math.cos(self._state[2]))
-    self._state[2] = math.sin(self._state[2])
+    # self._state[2] = math.sin(self._state[2])
     self._state[0] = self._goalX - self._state[0]
     self._state[1] = self._goalY - self._state[1]
     self._episode_ended = False
@@ -57,9 +61,32 @@ class ShipEnv(py_environment.PyEnvironment):
     # the agent survived the full episode
     if self._time_elapsed > self._time_cap:
       self._episode_ended = True
-      return ts.termination(np.array(self._state, dtype=np.float32), 100)
+      return ts.termination(np.array(self._state, dtype=np.float32), 500)
     
     self._time_elapsed += self._time_interval
+
+    self._ship.le, self._ship.re = action // 2, action % 2 # 0, 1, 2, 3 -> 00, 01, 10, 11
+    self._ship.applyPhysicsContinuous(self._time_interval, self._physics_interval)
+    
+    ### STATE ###
+    '''
+    State looks like:
+    0: xToGoal
+    1: yToGoal
+    2: theta
+    3: sin(theta)
+    4: vX
+    5: vY
+    6: vTheta
+    '''
+    ship_state = self._ship.state()
+    ship_state = np.insert(ship_state, 3, math.sin(ship_state[2]))
+    # ship_state[2] = math.sin(ship_state[2])
+
+    # set state x,y to 'distance from goal'
+    ship_state[0] = self._goalX - ship_state[0]
+    ship_state[1] = self._goalY - ship_state[1]
+    self._state = ship_state
 
     # velocity, magnitude of velocity
     # v = [self._state[3], self._state[4]]
@@ -78,34 +105,20 @@ class ShipEnv(py_environment.PyEnvironment):
     # dot = (v[0]*dp[0] + v[1]*dp[1])
     # dot = dot and dot / (mv * mdp)
 
-    # 1 point per second for existing
-    reward = 1
+    ### REWARDS ###
+    reward = 0
 
-    # 3 points per second for being within 150 of goal
+    # points per step for being within range of goal
     if mdp < 150:
       reward += 5
     elif mdp < 300:
       reward += 2
     elif mdp > 600:
-      reward -= 0.5
+      reward += 0.5
 
-    # -1 point per second for spinning fast
-    if self._state[6] > math.pi or self._state[6] < -math.pi:
-      reward -= 2
-
-    # - 1 point for not keeping the ship aligned
-
-
+    # dock points per step for spinning fast
+    if math.fabs(self._state[6]) > math.pi/2:
+      reward -= 0.3
+    
     reward *= self._time_interval
-    self._ship.le, self._ship.re = action // 2, action % 2 # 0, 1, 2, 3 -> 00, 01, 10, 11
-    self._ship.applyPhysics(self._time_interval)
-    ship_state = self._ship.state()
-    ship_state = np.insert(ship_state, 3, math.cos(ship_state[2]))
-    ship_state[2] = math.sin(ship_state[2])
-
-    # set state x,y to 'distance from goal'
-    ship_state[0] = self._goalX - ship_state[0]
-    ship_state[1] = self._goalY - ship_state[1]
-    self._state = ship_state
-
     return ts.transition(observation=self._state, reward=reward)

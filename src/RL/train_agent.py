@@ -30,20 +30,20 @@ if not os.path.isdir(policy_dir):
   raise Exception("Could not find directory for saving policy.")
 
 ### Hyperparameters ###
-num_iterations = 50000 # @param {type:"integer"}
+num_iterations = 200000 # @param {type:"integer"}
 
-initial_collect_steps = 10000  # @param {type:"integer"} 
-collect_steps_per_iteration = 20  # @param {type:"integer"}
-replay_buffer_max_length = 100000  # @param {type:"integer"}
+initial_collect_steps = 30000  # @param {type:"integer"} 
+collect_steps_per_iteration = 32  # @param {type:"integer"}
+replay_buffer_max_length = 500000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-5 # @param {type:"number"}
-log_interval = 500  # @param {type:"integer"}
+learning_rate = 1e-4 # @param {type:"number"}
+log_interval = 200  # @param {type:"integer"}
 
-num_eval_episodes = 10  # @param {type:"integer"}
-eval_interval = 5000  # @param {type:"integer"}
+num_eval_episodes = 20  # @param {type:"integer"}
+eval_interval = 2000  # @param {type:"integer"}
 
-fc_layer_params = (128,32)
+fc_layer_params = (64,8)
 
 ### Environment ###
 
@@ -113,6 +113,7 @@ def collect_data(env, policy, buffer, steps):
   for _ in range(steps):
     collect_step(env, policy, buffer)
 
+print(f"[+] Collecting {initial_collect_steps} initial steps of data")
 collect_data(train_env, random_policy, replay_buffer, steps=initial_collect_steps)
 
 dataset = replay_buffer.as_dataset(
@@ -140,7 +141,7 @@ for _ in range(num_iterations):
 
   # Collect a few steps using collect_policy and save to the replay buffer.
   for _ in range(collect_steps_per_iteration):
-    ns = collect_step(train_env, agent.collect_policy, replay_buffer)
+    collect_step(train_env, agent.collect_policy, replay_buffer)
 
   # Sample a batch of data from the buffer and update the agent's network.
   experience, unused_info = next(iterator)
@@ -168,6 +169,8 @@ saver = policy_saver.PolicySaver(
 )
 
 saver.save(policy_dir)
+
+print(f"[+] Model saved to {policy_dir}.")
 
 ### Visualization ###
 

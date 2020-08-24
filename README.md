@@ -2,6 +2,9 @@ This project was bootstrapped with **[Create React App](https://github.com/faceb
 
 View the demo at https://metasir.github.io/WIP-Reinforcement-learning-UFO/ .
 
+## IMPORTANT NOTE:
+
+The build currently fails due to a bug in babel described [here](https://github.com/tensorflow/tfjs/issues/3384#issuecomment-676511180). Until that issue is resolved, the build will fail without temporary workarounds.
 ___
 
 ## Training

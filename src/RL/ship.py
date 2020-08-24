@@ -24,10 +24,10 @@ class Vector:
       self.y = yHi
 
 class Ship:
-  def __init__(self, x, y):
+  def __init__(self, x, y, vx = 0.0, vy = 0.0, aV = 0.0):
     self.p = Vector(x, y)
-    self.v = Vector(0.0, 0.0)
-    self.aV = 0.0
+    self.v = Vector(vx, vy)
+    self.aV = aV
     self.le = True
     self.re = True
     self.theta = -math.pi / 2.0
@@ -37,7 +37,7 @@ class Ship:
 
     self.engineForce = 250.0
 
-    self.engineTorque = 0.1
+    self.engineTorque = 5.0
 
     self.velocityDecay = 0.2
     
@@ -62,7 +62,6 @@ class Ship:
       return 0
   
   def applyPhysics(self, deltaT):
-    deltaT = deltaT
 
     # y is inverted
     a = self.acceleration()
@@ -77,3 +76,9 @@ class Ship:
 
     self.aV *= 1 - deltaT * self.angularDecay
     self.aV += aA * deltaT
+
+  def applyPhysicsContinuous(self, deltaT, deltaTContinuous):
+    timer = 0
+    while timer < deltaT:
+      self.applyPhysics(deltaTContinuous)
+      timer += deltaTContinuous

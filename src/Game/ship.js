@@ -39,11 +39,7 @@ export default class Ship {
 
     two.add(this.group);
 
-    this.group.translation.set(x, y);
-    this.leftEngine = true;
-    this.rightEngine = true;
-    this.v = new Two.Vector(0, 0);
-    this.aV = 0.1;
+    this.reset(x,y)
   }
 
   /**
@@ -53,9 +49,9 @@ export default class Ship {
    */
   reset(x, y) {
     this.group.translation.set(x, y);
-    this.group.rotation = 0;
-    this.v.set(0, 0);
-    this.aV = 0;
+    this.group.rotation = (Math.random() - 0.5) * 0.1;
+    this.v = new Two.Vector((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1);
+    this.aV = (Math.random() - 0.5) * 0.1;
     this.leftEngine = true;
     this.rightEngine = true;
   }
@@ -84,7 +80,7 @@ export default class Ship {
 
   get engineTorque() {
     // 'angular acceleration' rather than 'torque'
-    return 0.1;
+    return 5.0;
   }
 
   /** Rate to reduce velocity per second, e.g. 0.2 reduces velocity by 20% per second. */
@@ -187,6 +183,6 @@ export default class Ship {
     this.v.y = this.minY < p.y && p.y < this.maxY ? this.v.y : this.v.y / 1000;
 
     this.aV *= 1 - deltaT * this.angularDecay;
-    this.aV += aA;
+    this.aV += aA * deltaT;
   }
 }
