@@ -55,7 +55,7 @@ export default function Game(props) {
           'reward': tf.tensor([0.0]),
           // 'step_type': tf.tensor([[0]], "int32"),
           'observation': tf.tensor(
-          [[goalX - state.pos.x, goalY - state.pos.y, Math.sin(state.theta), Math.cos(state.theta), state.v.x, state.v.y, state.aV]]
+          [[goalX - state.pos.x, goalY - state.pos.y, state.theta, Math.sin(state.theta), state.v.x, state.v.y, state.aV]]
         )},
         {batchSize: 1}
       )
@@ -85,7 +85,7 @@ export default function Game(props) {
         onClick={(e) => {
           e.preventDefault();
           if (ship) {
-            ship.reset(100, 100);
+            ship.reset(300, 100);
           }
           if (stopped && two) {
             two.bind("update", (frameCount, deltaT) => {

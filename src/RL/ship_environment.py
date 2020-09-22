@@ -13,6 +13,30 @@ from tf_agents.trajectories import time_step as ts
 from ship import Ship
 
 class ShipEnv(py_environment.PyEnvironment):
+  """
+  Description:
+    A ship starts upright at an arbitrary point in the x-y plane. The ship is powered by
+    two engines on the left and right, which provide force and torque to the ship. The goal
+    is to keep the ship hovering as close to a goal point in the plane as possible by turning
+    the engines on and off.
+
+  Observation:
+    Num   Observation             Min           Max
+    0     x displacement to goal  -1200         1200
+    1     y displacement to goal  -1200         1200
+    2     rotation of ship        0             2pi
+    3     sin of rotation         -1            1
+    4     x velocity              -Inf          Inf
+    5     y velocity              -Inf          Inf
+    6     rotational velocity     -Inf          Inf
+    
+  Actions:
+    Num   Action
+    0     Both engines off
+    1     Right engine on
+    2     Left engine on
+    3     Both engines on
+  """
   def __init__(self, goalX=0.0, goalY=0.0):
     x, y = goalX + random.randint(-100, 100), goalY + random.randint(-100, 100)
     self._ship = Ship(x, y)
@@ -31,6 +55,8 @@ class ShipEnv(py_environment.PyEnvironment):
     self._goalY = goalY
     self._terminal_distance = 1200
 
+    self._random_range = 400
+
   def action_spec(self):
     return self._action_spec
 
@@ -38,7 +64,7 @@ class ShipEnv(py_environment.PyEnvironment):
     return self._observation_spec
 
   def _reset(self):
-    x, y = self._goalX + random.randint(-400, 400), self._goalY + random.randint(-400, 400)
+    x, y = self._goalX + random.randint(-self._random_range, self._random_range), self._goalY + random.randint(-self._random_range, self._random_range / 2.0)
     vx, vy = random.randint(-5, 5), self._goalY + random.randint(-5, 20)
     aV = (random.random() - 0.5) * 0.05
     self._ship = Ship(x, y, vx, vy, aV)
@@ -50,6 +76,7 @@ class ShipEnv(py_environment.PyEnvironment):
     self._state[1] = self._goalY - self._state[1]
     self._episode_ended = False
     self._time_elapsed = 0
+    
     return ts.restart(self._state)
 
   def _step(self, action):
@@ -64,7 +91,6 @@ class ShipEnv(py_environment.PyEnvironment):
       return ts.termination(np.array(self._state, dtype=np.float32), 500)
     
     self._time_elapsed += self._time_interval
-
     self._ship.le, self._ship.re = action // 2, action % 2 # 0, 1, 2, 3 -> 00, 01, 10, 11
     self._ship.applyPhysicsContinuous(self._time_interval, self._physics_interval)
     
@@ -89,21 +115,21 @@ class ShipEnv(py_environment.PyEnvironment):
     self._state = ship_state
 
     # velocity, magnitude of velocity
-    # v = [self._state[3], self._state[4]]
-    # mv = math.sqrt(v[0]**2 + v[1]**2)
+    v = [self._state[4], self._state[5]]
+    mv = math.sqrt(v[0]**2 + v[1]**2)
 
     # delta to goal, magnitude of delta
     dp = [self._state[0], self._state[1]]
     mdp = math.sqrt(dp[0]**2 + dp[1]**2)
-
+    
     # reset if we've gone far, and punish the agent
     if mdp > self._terminal_distance:
       self._episode_ended = True
-      return ts.termination(np.array(self._state, dtype=np.float32), -50)
+      return ts.termination(np.array(self._state, dtype=np.float32), -5)
 
     # unitary dot product to measure alignment of v to dp
-    # dot = (v[0]*dp[0] + v[1]*dp[1])
-    # dot = dot and dot / (mv * mdp)
+    dot = (v[0]*dp[0] + v[1]*dp[1])
+    dot = mv and mdp and dot / (mv * mdp)
 
     ### REWARDS ###
     reward = 0
@@ -116,9 +142,14 @@ class ShipEnv(py_environment.PyEnvironment):
     elif mdp > 600:
       reward += 0.5
 
+    # points per step for moving towards goal
+    reward += max(0, 2 + 2 * dot)
+
+    reward *= self._time_elapsed
+
     # dock points per step for spinning fast
-    if math.fabs(self._state[6]) > math.pi/2:
-      reward -= 0.3
+    if math.fabs(self._state[6]) < math.pi/2:
+      reward += 1
     
     reward *= self._time_interval
     return ts.transition(observation=self._state, reward=reward)

@@ -5,8 +5,10 @@ from __future__ import print_function
 import numpy as np
 import math
 import os
+import sys
 import matplotlib.pyplot as plt
 from timeit import default_timer as timer
+import shutil
 
 import tensorflow as tf
 tf.compat.v1.enable_v2_behavior()
@@ -14,13 +16,12 @@ tf.keras.backend.set_floatx('float32')
 
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.networks import q_network
-from tf_agents.environments import utils
+from tf_agents.environments import tf_py_environment
 from tf_agents.utils import common
 from tf_agents.policies import random_tf_policy, tf_policy, policy_saver
 from tf_agents.eval import metric_utils
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
-from tf_agents.environments import tf_py_environment
 
 from ship_environment import ShipEnv
 import ship_environment
@@ -30,20 +31,21 @@ if not os.path.isdir(policy_dir):
   raise Exception("Could not find directory for saving policy.")
 
 ### Hyperparameters ###
-num_iterations = 200000 # @param {type:"integer"}
+num_iterations = 50000 # @param {type:"integer"}
 
-initial_collect_steps = 30000  # @param {type:"integer"} 
-collect_steps_per_iteration = 32  # @param {type:"integer"}
-replay_buffer_max_length = 500000  # @param {type:"integer"}
+initial_collect_steps = 20000  # @param {type:"integer"} 
+collect_steps_per_iteration = 20  # @param {type:"integer"}
+replay_buffer_max_length = 50000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-4 # @param {type:"number"}
+learning_rate = 1e-5 # @param {type:"number"}
 log_interval = 200  # @param {type:"integer"}
 
 num_eval_episodes = 20  # @param {type:"integer"}
-eval_interval = 2000  # @param {type:"integer"}
+eval_interval = 1000  # @param {type:"integer"}
+checkpoint_interval = 100000
 
-fc_layer_params = (64,8)
+fc_layer_params = (512,)
 
 ### Environment ###
 
@@ -117,9 +119,9 @@ print(f"[+] Collecting {initial_collect_steps} initial steps of data")
 collect_data(train_env, random_policy, replay_buffer, steps=initial_collect_steps)
 
 dataset = replay_buffer.as_dataset(
-  num_parallel_calls=3,
+  num_parallel_calls=6,
   sample_batch_size=batch_size,
-  num_steps=2).prefetch(3)
+  num_steps=2).prefetch(6)
 
 iterator = iter(dataset)
 
@@ -135,8 +137,27 @@ agent.train_step_counter.assign(0)
 avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
 returns = [avg_return]
 
+checkpoint_dir = policy_dir + ".checkpoint"
+train_checkpointer = common.Checkpointer(
+  ckpt_dir = checkpoint_dir,
+  max_to_keep=1,
+  agent=agent,
+  policy=agent.policy,
+  replay_buffer=replay_buffer,
+  global_step=train_step_counter
+)
+
+if len(sys.argv) > 1 and sys.argv[1] == "--checkpoint":
+  train_checkpointer.initialize_or_restore()
+  print("[+] Restoring checkpoint.")
+else:
+  if os.path.isdir(checkpoint_dir):
+    shutil.rmtree(checkpoint_dir)
+  train_checkpointer.save(train_step_counter)
+
 print("[+] Starting simulation.")
 start = timer()
+
 for _ in range(num_iterations):
 
   # Collect a few steps using collect_policy and save to the replay buffer.
@@ -148,21 +169,26 @@ for _ in range(num_iterations):
   train_loss = agent.train(experience).loss
 
   step = agent.train_step_counter.numpy()
-
   if step % log_interval == 0:
-    print('step = {0}: loss = {1}'.format(step, train_loss))
+    print('step = {0}: loss = {1:.2f}'.format(step, train_loss))
 
-  if step % eval_interval == 1:
+  if step % eval_interval == 0:
     avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
-    print('step = {0}: Average Return = {1}'.format(step, avg_return))
+    print('step = {0}: Average Return = {1:.2f}'.format(step, avg_return))
     returns.append(avg_return)
+
+  if step % checkpoint_interval == 0:
+    train_checkpointer.save(train_step_counter)
+    print(f"[+] Saved checkpoint at step {step}")
 
 end = timer()
 d, m = divmod(end - start, 60)
 
-print(f"[+] Total processing time: {d} minutes and {m} seconds")
+print(f"[+] Total processing time: {d} minutes and {m:.1f} seconds")
 
 ### Saving policy ###
+
+train_checkpointer.save(train_step_counter)
 
 saver = policy_saver.PolicySaver(
   agent.policy, batch_size=1

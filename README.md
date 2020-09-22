@@ -1,6 +1,6 @@
 This project was bootstrapped with **[Create React App](https://github.com/facebook/create-react-app)**, and uses **Tensorflow** and **TF-Agents** for reinforcement learning.
 
-View the demo at https://metasir.github.io/WIP-Reinforcement-learning-UFO/ .
+View the demo at https://dmitrifried.github.io/WIP-Reinforcement-learning-UFO/ .
 
 ## IMPORTANT NOTE:
 
